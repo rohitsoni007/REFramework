@@ -2138,7 +2138,7 @@ bool REFramework::initialize_game_data() {
 #endif
             reframework::initialize_sdk();
 
-#if TDB_VER >= 71
+#if TDB_VER >= 66
             const auto start_time = std::chrono::high_resolution_clock::now();
 
             while (true) {

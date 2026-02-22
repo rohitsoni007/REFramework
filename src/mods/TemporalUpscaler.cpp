@@ -105,9 +105,9 @@ void TemporalUpscaler::on_draw_ui() {
         return;
     }
 
-#if TDB_VER < 67
+#if TDB_VER < 66
     ImGui::TextWrapped("TemporalUpscaler is not yet supported on this version of the engine.");
-    ImGui::TextWrapped("Supported: RE2/RE3/RE7 (RT latest, not beta builds), RE4, RE8, SF6, DMC5 (partial)");
+    ImGui::TextWrapped("Supported: RE2 (incl. TDB66), RE3/RE7 (RT latest), RE4, RE8, SF6, DMC5 (partial)");
     return;
 #else
     if (!m_backend_loaded) {
