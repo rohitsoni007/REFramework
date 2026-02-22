@@ -1,6 +1,8 @@
 #include <chrono>
 #include <filesystem>
 #include <fstream>
+#include <string>
+#include <vector>
 
 #include <windows.h>
 #include <ShlObj.h>
@@ -203,6 +205,100 @@ using LdrRegisterDllNotification_t = NTSTATUS (*) (
 std::optional<std::filesystem::path> g_current_game_path{};
 bool g_success_made_ldr_notification{false};
 
+// Ensures steam_emu.ini has SelfProtect=0 in [Settings] so Steam emulators (e.g. Goldberg, CODEX-style)
+// do not trigger self-protection that can crash REFramework or the game when DLLs are loaded.
+static void ensure_steam_emu_self_protect_disabled(const std::filesystem::path& game_path) {
+    const auto ini_path = game_path / "steam_emu.ini";
+    std::error_code ec{};
+    if (!std::filesystem::is_regular_file(ini_path, ec) || ec) {
+        return;
+    }
+    std::ifstream in(ini_path);
+    if (!in) {
+        spdlog::warn("[SteamEmu] Could not open steam_emu.ini for reading");
+        return;
+    }
+    std::vector<std::string> lines;
+    std::string line;
+    bool in_settings = false;
+    bool found_settings_section = false;
+    bool has_self_protect_zero = false;
+    size_t settings_line_index = 0;
+    size_t self_protect_line_index = 0;
+    bool has_self_protect_line = false;
+
+    while (std::getline(in, line)) {
+        std::string trimmed = line;
+        const auto start = trimmed.find_first_not_of(" \t\r\n");
+        if (start != std::string::npos) {
+            trimmed.erase(0, start);
+            const auto end = trimmed.find_last_not_of(" \t\r\n");
+            if (end != std::string::npos) {
+                trimmed.erase(end + 1);
+            }
+        } else {
+            trimmed.clear();
+        }
+
+        if (trimmed.empty()) {
+            lines.push_back(line);
+            continue;
+        }
+        if (trimmed[0] == '[') {
+            in_settings = (trimmed.size() >= 9 && _strnicmp(trimmed.c_str(), "[Settings]", 10) == 0);
+            if (in_settings) {
+                found_settings_section = true;
+                settings_line_index = lines.size();
+            }
+            lines.push_back(line);
+            continue;
+        }
+        if (in_settings && trimmed.size() >= 12 && _strnicmp(trimmed.c_str(), "SelfProtect=", 12) == 0) {
+            has_self_protect_line = true;
+            self_protect_line_index = lines.size();
+            std::string value = trimmed.substr(12);
+            const auto value_start = value.find_first_not_of(" \t");
+            if (value_start != std::string::npos) {
+                value.erase(0, value_start);
+            } else {
+                value.clear();
+            }
+            if (value == "0" || value.empty()) {
+                has_self_protect_zero = true;
+            }
+            lines.push_back(line);
+            continue;
+        }
+        lines.push_back(line);
+    }
+    in.close();
+
+    if (has_self_protect_zero) {
+        return;
+    }
+    if (!found_settings_section) {
+        return;
+    }
+    if (has_self_protect_line) {
+        lines[self_protect_line_index] = "SelfProtect=0";
+    } else {
+        lines.insert(lines.begin() + settings_line_index + 1, "SelfProtect=0");
+    }
+
+    std::ofstream out(ini_path);
+    if (!out) {
+        spdlog::warn("[SteamEmu] Could not open steam_emu.ini for writing");
+        return;
+    }
+    for (const auto& l : lines) {
+        out << l;
+        if (l.empty() || l.back() != '\n') {
+            out << '\n';
+        }
+    }
+    spdlog::info("[SteamEmu] Set SelfProtect=0 in steam_emu.ini [Settings] for compatibility");
+}
+
 void CALLBACK ldr_notification_callback(
     ULONG                       NotificationReason,
     PLDR_DLL_NOTIFICATION_DATA NotificationData,
@@ -282,6 +378,7 @@ REFramework::REFramework(HMODULE reframework_module)
         g_current_game_path = *current_game_path;
         g_current_game_path = g_current_game_path->parent_path();
         spdlog::info("Current game path: {}", utility::narrow(g_current_game_path->c_str()));
+        ensure_steam_emu_self_protect_disabled(*g_current_game_path);
     }
 
     // preallocate some memory for minhook to mitigate failures (temporarily at least... this should in theory fail when too many hooks are made)
