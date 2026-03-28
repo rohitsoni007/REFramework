@@ -46,11 +46,14 @@ std::shared_ptr<TemporalUpscaler>& TemporalUpscaler::get() {
 }
 
 std::optional<std::string> TemporalUpscaler::on_initialize() {
-    m_backend_loaded = GetModuleHandleA("PDPerfPlugin.dll") != nullptr ||
+    // Try TemporalUpscaler.dll first (new implementation), then PDPerfPlugin.dll (legacy)
+    m_backend_loaded = GetModuleHandleA("TemporalUpscaler.dll") != nullptr ||
+                       utility::load_module_from_current_directory(L"TemporalUpscaler.dll") != nullptr ||
+                       GetModuleHandleA("PDPerfPlugin.dll") != nullptr ||
                        utility::load_module_from_current_directory(L"PDPerfPlugin.dll") != nullptr;
 
     if (!m_backend_loaded) {
-        spdlog::info("[TemporalUpscaler] Could not load PDPerfPlugin.dll, TemporalUpscaler will not work");
+        spdlog::info("[TemporalUpscaler] Could not load TemporalUpscaler.dll or PDPerfPlugin.dll, TemporalUpscaler will not work");
     } else {
         for (auto i = 0; i <= TemporalUpscaler::PDUpscaleType::XESS; ++i) {
             const auto is_available = IsUpscaleMethodAvailable(i);
@@ -112,7 +115,7 @@ void TemporalUpscaler::on_draw_ui() {
 #else
     if (!m_backend_loaded) {
         ImGui::TextWrapped("Backend is not loaded, TemporalUpscaler will not work.");
-        ImGui::TextWrapped("Make sure you've downloaded UpscalerBasePlugin (PDPerfPlugin.dll)");
+        ImGui::TextWrapped("Make sure you've downloaded TemporalUpscaler.dll or PDPerfPlugin.dll");
         ImGui::TextWrapped("And the corresponding DLLs for your preferred upscaler(s) (DLSS/FSR2/XeSS)");
         return;
     }

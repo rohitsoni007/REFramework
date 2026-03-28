@@ -2,32 +2,43 @@
     "version": 2,
     "configurePresets": [
         {
-            "name": "vs2022",
-            "displayName": "Visual Studio 2022 - amd64",
-            "description": "Using compilers for Visual Studio 17 2022 (x64 architecture)",
-            "generator": "Visual Studio 17 2022",
+            "name": "vs2026",
+            "displayName": "Visual Studio 2026 - amd64",
+            "description": "Using compilers for Visual Studio 18 2026 (x64 architecture)",
+            "generator": "Visual Studio 18 2026",
             "toolset": "host=x64",
             "architecture": "x64",
             "binaryDir": "${sourceDir}/build",
             "cacheVariables": {
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/"
             }
+        },
+        {
+            "name": "Custom configure preset",
+            "displayName": "Custom configure preset",
+            "description": "Sets Ninja generator, build and install directory",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/out/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}"
+            }
         }
     ],
     "buildPresets": [
         {
-            "name": "Release 2022",
+            "name": "Release 2026",
             "description": "",
             "displayName": "Release",
             "configuration": "Release",
-            "configurePreset": "vs2022"
+            "configurePreset": "vs2026"
         },
         {
-            "name": "RelWithDebInfo 2022",
+            "name": "RelWithDebInfo 2026",
             "description": "",
             "displayName": "RelWithDebInfo",
             "configuration": "RelWithDebInfo",
-            "configurePreset": "vs2022"
+            "configurePreset": "vs2026"
         }
     ]
 }
