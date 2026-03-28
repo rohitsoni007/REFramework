@@ -83,11 +83,30 @@ tag = "458984d7f59d1ae6dc1b597d94b02e4f7132eaba"
 [target.pdperfmod]
 type = "shared"
 include-directories = ["dependencies/pd-perfmod/include"]
-sources = ["dependencies/pd-perfmod/dummy/**.cpp"]
+sources = [
+	"dependencies/pd-perfmod/src/PDPerfPluginImpl.cpp",
+	"dependencies/pd-perfmod/src/GlobalUpscalerManager.cpp",
+	"dependencies/pd-perfmod/src/DLSSBackend.cpp",
+	"dependencies/pd-perfmod/src/FSR2Backend.cpp",
+	"dependencies/pd-perfmod/src/XeSSSBackend.cpp"
+]
 condition = "build-framework-dependencies"
+cmake-after="""
+if(DEFINED ENV{REF_GAME_DIR})
+    if(NOT "$ENV{REF_GAME_DIR}" STREQUAL "")
+        add_custom_command(
+            TARGET ${CMKR_TARGET} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${CMKR_TARGET}> "$ENV{REF_GAME_DIR}/"
+        )
+    endif()
+endif()
+"""
 
 [target.pdperfmod.properties]
-OUTPUT_NAME = "PDPerfPlugin"
+OUTPUT_NAME = "TemporalUpscaler"
+
+[target.pdperfmod.compile-options]
+cpp-options = ["/EHsc"]
 
 [fetch-content.directxtk]
 git = "https://github.com/microsoft/DirectXTK"
@@ -269,11 +288,25 @@ link-libraries = [
 cmake-before="""
 """
 cmake-after="""
-add_custom_command(
-    TARGET ${CMKR_TARGET} PRE_BUILD
-    COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
-    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
-)
+if(DEFINED ENV{REF_GAME_DIR})
+    add_custom_command(
+        TARGET ${CMKR_TARGET} PRE_BUILD
+        COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
+        COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
+    )
+    if(NOT "$ENV{REF_GAME_DIR}" STREQUAL "")
+        add_custom_command(
+            TARGET ${CMKR_TARGET} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${CMKR_TARGET}> "$ENV{REF_GAME_DIR}/"
+        )
+    endif()
+else()
+    add_custom_command(
+        TARGET ${CMKR_TARGET} PRE_BUILD
+        COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
+        COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
+    )
+endif()
 """
 
 [template.game.properties]
@@ -403,6 +436,17 @@ type = "shared"
 include-directories = ["include/"]
 compile-features = ["cxx_std_23"]
 condition = "build-framework"
+cmake-after="""
+if(DEFINED ENV{REF_GAME_DIR})
+    if(NOT "$ENV{REF_GAME_DIR}" STREQUAL "")
+        add_custom_command(
+            TARGET ${CMKR_TARGET} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E make_directory "$ENV{REF_GAME_DIR}/reframework/plugins"
+            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${CMKR_TARGET}> "$ENV{REF_GAME_DIR}/reframework/plugins/"
+        )
+    endif()
+endif()
+"""
 
 [template.plugin.properties]
 RUNTIME_OUTPUT_DIRECTORY_RELEASE = "${CMAKE_BINARY_DIR}/bin/${CMKR_TARGET}"

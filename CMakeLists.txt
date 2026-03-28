@@ -155,7 +155,11 @@ FetchContent_MakeAvailable(kananlib)
 if(REF_BUILD_DEPENDENCIES AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework-dependencies
 	set(pdperfmod_SOURCES
 		cmake.toml
-		"dependencies/pd-perfmod/dummy/PDPerfPlugin.cpp"
+		"dependencies/pd-perfmod/src/DLSSBackend.cpp"
+		"dependencies/pd-perfmod/src/FSR2Backend.cpp"
+		"dependencies/pd-perfmod/src/GlobalUpscalerManager.cpp"
+		"dependencies/pd-perfmod/src/PDPerfPluginImpl.cpp"
+		"dependencies/pd-perfmod/src/XeSSSBackend.cpp"
 	)
 
 	add_library(pdperfmod SHARED)
@@ -169,8 +173,18 @@ if(REF_BUILD_DEPENDENCIES AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework-dep
 
 	set_target_properties(pdperfmod PROPERTIES
 		OUTPUT_NAME
-			PDPerfPlugin
+			TemporalUpscaler
 	)
+
+	set(CMKR_TARGET pdperfmod)
+	if(DEFINED ENV{REF_GAME_DIR})
+	    if(NOT "$ENV{REF_GAME_DIR}" STREQUAL "")
+	        add_custom_command(
+	            TARGET ${CMKR_TARGET} POST_BUILD
+	            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${CMKR_TARGET}> "$ENV{REF_GAME_DIR}/"
+	        )
+	    endif()
+	endif()
 
 endif()
 # Target: spdlog
@@ -2337,11 +2351,25 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 			"${CMAKE_BINARY_DIR}/lib/${CMKR_TARGET}"
 	)
 
-	add_custom_command(
-	    TARGET ${CMKR_TARGET} PRE_BUILD
-	    COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
-	    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
-	)
+	if(DEFINED ENV{REF_GAME_DIR})
+	    add_custom_command(
+	        TARGET ${CMKR_TARGET} PRE_BUILD
+	        COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
+	        COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
+	    )
+	    if(NOT "$ENV{REF_GAME_DIR}" STREQUAL "")
+	        add_custom_command(
+	            TARGET ${CMKR_TARGET} POST_BUILD
+	            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${CMKR_TARGET}> "$ENV{REF_GAME_DIR}/"
+	        )
+	    endif()
+	else()
+	    add_custom_command(
+	        TARGET ${CMKR_TARGET} PRE_BUILD
+	        COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
+	        COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
+	    )
+	endif()
 
 endif()
 # Target: RE2_TDB66
@@ -2543,11 +2571,25 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 			"${CMAKE_BINARY_DIR}/lib/${CMKR_TARGET}"
 	)
 
-	add_custom_command(
-	    TARGET ${CMKR_TARGET} PRE_BUILD
-	    COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
-	    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
-	)
+	if(DEFINED ENV{REF_GAME_DIR})
+	    add_custom_command(
+	        TARGET ${CMKR_TARGET} PRE_BUILD
+	        COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
+	        COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
+	    )
+	    if(NOT "$ENV{REF_GAME_DIR}" STREQUAL "")
+	        add_custom_command(
+	            TARGET ${CMKR_TARGET} POST_BUILD
+	            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${CMKR_TARGET}> "$ENV{REF_GAME_DIR}/"
+	        )
+	    endif()
+	else()
+	    add_custom_command(
+	        TARGET ${CMKR_TARGET} PRE_BUILD
+	        COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
+	        COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
+	    )
+	endif()
 
 endif()
 # Target: RE3SDK
@@ -4444,11 +4486,25 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 			"${CMAKE_BINARY_DIR}/lib/${CMKR_TARGET}"
 	)
 
-	add_custom_command(
-	    TARGET ${CMKR_TARGET} PRE_BUILD
-	    COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
-	    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
-	)
+	if(DEFINED ENV{REF_GAME_DIR})
+	    add_custom_command(
+	        TARGET ${CMKR_TARGET} PRE_BUILD
+	        COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
+	        COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
+	    )
+	    if(NOT "$ENV{REF_GAME_DIR}" STREQUAL "")
+	        add_custom_command(
+	            TARGET ${CMKR_TARGET} POST_BUILD
+	            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${CMKR_TARGET}> "$ENV{REF_GAME_DIR}/"
+	        )
+	    endif()
+	else()
+	    add_custom_command(
+	        TARGET ${CMKR_TARGET} PRE_BUILD
+	        COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
+	        COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
+	    )
+	endif()
 
 endif()
 # Target: RE3_TDB67
@@ -4650,11 +4706,25 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 			"${CMAKE_BINARY_DIR}/lib/${CMKR_TARGET}"
 	)
 
-	add_custom_command(
-	    TARGET ${CMKR_TARGET} PRE_BUILD
-	    COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
-	    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
-	)
+	if(DEFINED ENV{REF_GAME_DIR})
+	    add_custom_command(
+	        TARGET ${CMKR_TARGET} PRE_BUILD
+	        COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
+	        COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
+	    )
+	    if(NOT "$ENV{REF_GAME_DIR}" STREQUAL "")
+	        add_custom_command(
+	            TARGET ${CMKR_TARGET} POST_BUILD
+	            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${CMKR_TARGET}> "$ENV{REF_GAME_DIR}/"
+	        )
+	    endif()
+	else()
+	    add_custom_command(
+	        TARGET ${CMKR_TARGET} PRE_BUILD
+	        COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
+	        COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
+	    )
+	endif()
 
 endif()
 # Target: RE4
@@ -4856,11 +4926,25 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 			"${CMAKE_BINARY_DIR}/lib/${CMKR_TARGET}"
 	)
 
-	add_custom_command(
-	    TARGET ${CMKR_TARGET} PRE_BUILD
-	    COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
-	    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
-	)
+	if(DEFINED ENV{REF_GAME_DIR})
+	    add_custom_command(
+	        TARGET ${CMKR_TARGET} PRE_BUILD
+	        COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
+	        COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
+	    )
+	    if(NOT "$ENV{REF_GAME_DIR}" STREQUAL "")
+	        add_custom_command(
+	            TARGET ${CMKR_TARGET} POST_BUILD
+	            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${CMKR_TARGET}> "$ENV{REF_GAME_DIR}/"
+	        )
+	    endif()
+	else()
+	    add_custom_command(
+	        TARGET ${CMKR_TARGET} PRE_BUILD
+	        COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
+	        COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
+	    )
+	endif()
 
 endif()
 # Target: RE4SDK
@@ -7606,11 +7690,25 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 			"${CMAKE_BINARY_DIR}/lib/${CMKR_TARGET}"
 	)
 
-	add_custom_command(
-	    TARGET ${CMKR_TARGET} PRE_BUILD
-	    COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
-	    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
-	)
+	if(DEFINED ENV{REF_GAME_DIR})
+	    add_custom_command(
+	        TARGET ${CMKR_TARGET} PRE_BUILD
+	        COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
+	        COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
+	    )
+	    if(NOT "$ENV{REF_GAME_DIR}" STREQUAL "")
+	        add_custom_command(
+	            TARGET ${CMKR_TARGET} POST_BUILD
+	            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${CMKR_TARGET}> "$ENV{REF_GAME_DIR}/"
+	        )
+	    endif()
+	else()
+	    add_custom_command(
+	        TARGET ${CMKR_TARGET} PRE_BUILD
+	        COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
+	        COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
+	    )
+	endif()
 
 endif()
 # Target: RE7_TDB49
@@ -7812,11 +7910,25 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 			"${CMAKE_BINARY_DIR}/lib/${CMKR_TARGET}"
 	)
 
-	add_custom_command(
-	    TARGET ${CMKR_TARGET} PRE_BUILD
-	    COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
-	    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
-	)
+	if(DEFINED ENV{REF_GAME_DIR})
+	    add_custom_command(
+	        TARGET ${CMKR_TARGET} PRE_BUILD
+	        COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
+	        COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
+	    )
+	    if(NOT "$ENV{REF_GAME_DIR}" STREQUAL "")
+	        add_custom_command(
+	            TARGET ${CMKR_TARGET} POST_BUILD
+	            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${CMKR_TARGET}> "$ENV{REF_GAME_DIR}/"
+	        )
+	    endif()
+	else()
+	    add_custom_command(
+	        TARGET ${CMKR_TARGET} PRE_BUILD
+	        COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
+	        COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
+	    )
+	endif()
 
 endif()
 # Target: RE8SDK
@@ -8867,11 +8979,25 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 			"${CMAKE_BINARY_DIR}/lib/${CMKR_TARGET}"
 	)
 
-	add_custom_command(
-	    TARGET ${CMKR_TARGET} PRE_BUILD
-	    COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
-	    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
-	)
+	if(DEFINED ENV{REF_GAME_DIR})
+	    add_custom_command(
+	        TARGET ${CMKR_TARGET} PRE_BUILD
+	        COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
+	        COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
+	    )
+	    if(NOT "$ENV{REF_GAME_DIR}" STREQUAL "")
+	        add_custom_command(
+	            TARGET ${CMKR_TARGET} POST_BUILD
+	            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${CMKR_TARGET}> "$ENV{REF_GAME_DIR}/"
+	        )
+	    endif()
+	else()
+	    add_custom_command(
+	        TARGET ${CMKR_TARGET} PRE_BUILD
+	        COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
+	        COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
+	    )
+	endif()
 
 endif()
 # Target: DMC5SDK
@@ -9920,11 +10046,25 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 			"${CMAKE_BINARY_DIR}/lib/${CMKR_TARGET}"
 	)
 
-	add_custom_command(
-	    TARGET ${CMKR_TARGET} PRE_BUILD
-	    COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
-	    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
-	)
+	if(DEFINED ENV{REF_GAME_DIR})
+	    add_custom_command(
+	        TARGET ${CMKR_TARGET} PRE_BUILD
+	        COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
+	        COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
+	    )
+	    if(NOT "$ENV{REF_GAME_DIR}" STREQUAL "")
+	        add_custom_command(
+	            TARGET ${CMKR_TARGET} POST_BUILD
+	            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${CMKR_TARGET}> "$ENV{REF_GAME_DIR}/"
+	        )
+	    endif()
+	else()
+	    add_custom_command(
+	        TARGET ${CMKR_TARGET} PRE_BUILD
+	        COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
+	        COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
+	    )
+	endif()
 
 endif()
 # Target: MHRISESDK
@@ -10975,11 +11115,25 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 			"${CMAKE_BINARY_DIR}/lib/${CMKR_TARGET}"
 	)
 
-	add_custom_command(
-	    TARGET ${CMKR_TARGET} PRE_BUILD
-	    COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
-	    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
-	)
+	if(DEFINED ENV{REF_GAME_DIR})
+	    add_custom_command(
+	        TARGET ${CMKR_TARGET} PRE_BUILD
+	        COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
+	        COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
+	    )
+	    if(NOT "$ENV{REF_GAME_DIR}" STREQUAL "")
+	        add_custom_command(
+	            TARGET ${CMKR_TARGET} POST_BUILD
+	            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${CMKR_TARGET}> "$ENV{REF_GAME_DIR}/"
+	        )
+	    endif()
+	else()
+	    add_custom_command(
+	        TARGET ${CMKR_TARGET} PRE_BUILD
+	        COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
+	        COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
+	    )
+	endif()
 
 endif()
 # Target: SF6SDK
@@ -12030,11 +12184,25 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 			"${CMAKE_BINARY_DIR}/lib/${CMKR_TARGET}"
 	)
 
-	add_custom_command(
-	    TARGET ${CMKR_TARGET} PRE_BUILD
-	    COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
-	    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
-	)
+	if(DEFINED ENV{REF_GAME_DIR})
+	    add_custom_command(
+	        TARGET ${CMKR_TARGET} PRE_BUILD
+	        COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
+	        COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
+	    )
+	    if(NOT "$ENV{REF_GAME_DIR}" STREQUAL "")
+	        add_custom_command(
+	            TARGET ${CMKR_TARGET} POST_BUILD
+	            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${CMKR_TARGET}> "$ENV{REF_GAME_DIR}/"
+	        )
+	    endif()
+	else()
+	    add_custom_command(
+	        TARGET ${CMKR_TARGET} PRE_BUILD
+	        COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
+	        COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
+	    )
+	endif()
 
 endif()
 # Target: DD2SDK
@@ -13085,11 +13253,25 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 			"${CMAKE_BINARY_DIR}/lib/${CMKR_TARGET}"
 	)
 
-	add_custom_command(
-	    TARGET ${CMKR_TARGET} PRE_BUILD
-	    COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
-	    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
-	)
+	if(DEFINED ENV{REF_GAME_DIR})
+	    add_custom_command(
+	        TARGET ${CMKR_TARGET} PRE_BUILD
+	        COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
+	        COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
+	    )
+	    if(NOT "$ENV{REF_GAME_DIR}" STREQUAL "")
+	        add_custom_command(
+	            TARGET ${CMKR_TARGET} POST_BUILD
+	            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${CMKR_TARGET}> "$ENV{REF_GAME_DIR}/"
+	        )
+	    endif()
+	else()
+	    add_custom_command(
+	        TARGET ${CMKR_TARGET} PRE_BUILD
+	        COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
+	        COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
+	    )
+	endif()
 
 endif()
 # Target: MHWILDSSDK
@@ -14140,11 +14322,25 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 			"${CMAKE_BINARY_DIR}/lib/${CMKR_TARGET}"
 	)
 
-	add_custom_command(
-	    TARGET ${CMKR_TARGET} PRE_BUILD
-	    COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
-	    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
-	)
+	if(DEFINED ENV{REF_GAME_DIR})
+	    add_custom_command(
+	        TARGET ${CMKR_TARGET} PRE_BUILD
+	        COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
+	        COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
+	    )
+	    if(NOT "$ENV{REF_GAME_DIR}" STREQUAL "")
+	        add_custom_command(
+	            TARGET ${CMKR_TARGET} POST_BUILD
+	            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${CMKR_TARGET}> "$ENV{REF_GAME_DIR}/"
+	        )
+	    endif()
+	else()
+	    add_custom_command(
+	        TARGET ${CMKR_TARGET} PRE_BUILD
+	        COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
+	        COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
+	    )
+	endif()
 
 endif()
 # Target: PRAGMATASDK
@@ -15195,11 +15391,25 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 			"${CMAKE_BINARY_DIR}/lib/${CMKR_TARGET}"
 	)
 
-	add_custom_command(
-	    TARGET ${CMKR_TARGET} PRE_BUILD
-	    COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
-	    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
-	)
+	if(DEFINED ENV{REF_GAME_DIR})
+	    add_custom_command(
+	        TARGET ${CMKR_TARGET} PRE_BUILD
+	        COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
+	        COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
+	    )
+	    if(NOT "$ENV{REF_GAME_DIR}" STREQUAL "")
+	        add_custom_command(
+	            TARGET ${CMKR_TARGET} POST_BUILD
+	            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${CMKR_TARGET}> "$ENV{REF_GAME_DIR}/"
+	        )
+	    endif()
+	else()
+	    add_custom_command(
+	        TARGET ${CMKR_TARGET} PRE_BUILD
+	        COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
+	        COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
+	    )
+	endif()
 
 endif()
 # Target: example_plugin
@@ -15257,6 +15467,17 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 			"${CMAKE_BINARY_DIR}/lib/${CMKR_TARGET}"
 	)
 
+	set(CMKR_TARGET example_plugin)
+	if(DEFINED ENV{REF_GAME_DIR})
+	    if(NOT "$ENV{REF_GAME_DIR}" STREQUAL "")
+	        add_custom_command(
+	            TARGET ${CMKR_TARGET} POST_BUILD
+	            COMMAND ${CMAKE_COMMAND} -E make_directory "$ENV{REF_GAME_DIR}/reframework/plugins"
+	            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${CMKR_TARGET}> "$ENV{REF_GAME_DIR}/reframework/plugins/"
+	        )
+	    endif()
+	endif()
+
 endif()
 # Target: weapon_stay_big_plugin
 if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
@@ -15292,5 +15513,16 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		ARCHIVE_OUTPUT_DIRECTORY_RELWITHDEBINFO
 			"${CMAKE_BINARY_DIR}/lib/${CMKR_TARGET}"
 	)
+
+	set(CMKR_TARGET weapon_stay_big_plugin)
+	if(DEFINED ENV{REF_GAME_DIR})
+	    if(NOT "$ENV{REF_GAME_DIR}" STREQUAL "")
+	        add_custom_command(
+	            TARGET ${CMKR_TARGET} POST_BUILD
+	            COMMAND ${CMAKE_COMMAND} -E make_directory "$ENV{REF_GAME_DIR}/reframework/plugins"
+	            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${CMKR_TARGET}> "$ENV{REF_GAME_DIR}/reframework/plugins/"
+	        )
+	    endif()
+	endif()
 
 endif()

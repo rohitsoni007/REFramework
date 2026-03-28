@@ -46,38 +46,54 @@ std::shared_ptr<TemporalUpscaler>& TemporalUpscaler::get() {
 }
 
 std::optional<std::string> TemporalUpscaler::on_initialize() {
-    // Try TemporalUpscaler.dll first (new implementation), then PDPerfPlugin.dll (legacy)
-    m_backend_loaded = GetModuleHandleA("TemporalUpscaler.dll") != nullptr ||
-                       utility::load_module_from_current_directory(L"TemporalUpscaler.dll") != nullptr ||
-                       GetModuleHandleA("PDPerfPlugin.dll") != nullptr ||
-                       utility::load_module_from_current_directory(L"PDPerfPlugin.dll") != nullptr;
+    try {
+        // Try TemporalUpscaler.dll first (new implementation), then PDPerfPlugin.dll (legacy)
+        m_backend_loaded = GetModuleHandleA("TemporalUpscaler.dll") != nullptr ||
+                           utility::load_module_from_current_directory(L"TemporalUpscaler.dll") != nullptr ||
+                           GetModuleHandleA("PDPerfPlugin.dll") != nullptr ||
+                           utility::load_module_from_current_directory(L"PDPerfPlugin.dll") != nullptr;
 
-    if (!m_backend_loaded) {
-        spdlog::info("[TemporalUpscaler] Could not load TemporalUpscaler.dll or PDPerfPlugin.dll, TemporalUpscaler will not work");
-    } else {
-        for (auto i = 0; i <= TemporalUpscaler::PDUpscaleType::XESS; ++i) {
-            const auto is_available = IsUpscaleMethodAvailable(i);
-            const auto upscale_name = GetUpscaleMethodName(i);
-
-            if (upscale_name == nullptr) {
-                continue;
-            }
-
-            if (is_available) {
-                m_available_upscale_methods[upscale_name] = i;
-                m_available_upscale_method_names.push_back(upscale_name);
-                spdlog::info("[TemporalUpscaler] Upscale method {} is available", i, upscale_name);
-            } else {
-                spdlog::info("[TemporalUpscaler] Upscale method {} is not available", i, upscale_name);
-            }
-        }
-
-        if (m_available_upscale_methods.empty()) {
-            spdlog::info("[TemporalUpscaler] No upscale methods are available, TemporalUpscaler will not work");
-            m_backend_loaded = false;
+        if (!m_backend_loaded) {
+            spdlog::info("[TemporalUpscaler] Could not load TemporalUpscaler.dll or PDPerfPlugin.dll, TemporalUpscaler will not work");
         } else {
-            m_upscale_type = (PDUpscaleType)m_available_upscale_methods[m_available_upscale_method_names[m_available_upscale_type]];
+            for (auto i = 0; i <= TemporalUpscaler::PDUpscaleType::XESS; ++i) {
+                try {
+                    const auto is_available = IsUpscaleMethodAvailable(i);
+                    const auto upscale_name = GetUpscaleMethodName(i);
+
+                    if (upscale_name == nullptr) {
+                        continue;
+                    }
+
+                    if (is_available) {
+                        m_available_upscale_methods[upscale_name] = i;
+                        m_available_upscale_method_names.push_back(upscale_name);
+                        spdlog::info("[TemporalUpscaler] Upscale method {} is available", i, upscale_name);
+                    } else {
+                        spdlog::info("[TemporalUpscaler] Upscale method {} is not available", i, upscale_name);
+                    }
+                } catch (const std::exception& e) {
+                    spdlog::error("[TemporalUpscaler] Exception while checking upscale method {}: {}", i, e.what());
+                    m_backend_loaded = false;
+                } catch (...) {
+                    spdlog::error("[TemporalUpscaler] Unknown exception while checking upscale method {}", i);
+                    m_backend_loaded = false;
+                }
+            }
+
+            if (m_available_upscale_methods.empty()) {
+                spdlog::info("[TemporalUpscaler] No upscale methods are available, TemporalUpscaler will not work");
+                m_backend_loaded = false;
+            } else {
+                m_upscale_type = (PDUpscaleType)m_available_upscale_methods[m_available_upscale_method_names[m_available_upscale_type]];
+            }
         }
+    } catch (const std::exception& e) {
+        spdlog::error("[TemporalUpscaler] Exception during initialization: {}", e.what());
+        m_backend_loaded = false;
+    } catch (...) {
+        spdlog::error("[TemporalUpscaler] Unknown exception during initialization");
+        m_backend_loaded = false;
     }
 
     return Mod::on_initialize();
@@ -450,28 +466,42 @@ void TemporalUpscaler::on_early_present() {
 bool TemporalUpscaler::on_first_frame() {
     spdlog::info("[TemporalUpscaler] Initializing first frame...");
 
-    m_first_frame_finished = true;
-    m_is_d3d12 = g_framework->is_dx12();
+    try {
+        m_first_frame_finished = true;
+        m_is_d3d12 = g_framework->is_dx12();
 
-    InitLogDelegate([](char* msg, int size) {
-        spdlog::info("[TemporalUpscaler] {}", msg);
-    });
+        InitLogDelegate([](char* msg, int size) {
+            spdlog::info("[TemporalUpscaler] {}", msg);
+        });
 
-    if (m_is_d3d12) {
-        auto& hook = g_framework->get_d3d12_hook();
-        SetupDirectX(hook->get_command_queue(), PDGraphicsAPI::D3D12);
-    } else {
-        auto& hook = g_framework->get_d3d11_hook();
-        SetupDirectX(hook->get_device(), PDGraphicsAPI::D3D11);
-    }
+        if (m_is_d3d12) {
+            auto& hook = g_framework->get_d3d12_hook();
+            if (!SetupDirectX(hook->get_command_queue(), PDGraphicsAPI::D3D12)) {
+                spdlog::warn("[TemporalUpscaler] SetupDirectX failed for D3D12");
+                return false;
+            }
+        } else {
+            auto& hook = g_framework->get_d3d11_hook();
+            if (!SetupDirectX(hook->get_device(), PDGraphicsAPI::D3D11)) {
+                spdlog::warn("[TemporalUpscaler] SetupDirectX failed for D3D11");
+                return false;
+            }
+        }
 
-    if (!init_upscale_features()) {
+        if (!init_upscale_features()) {
+            spdlog::warn("[TemporalUpscaler] init_upscale_features failed");
+            return false;
+        }
+
+        m_initialized = true;
+        return true;
+    } catch (const std::exception& e) {
+        spdlog::error("[TemporalUpscaler] Exception in on_first_frame: {}", e.what());
+        return false;
+    } catch (...) {
+        spdlog::error("[TemporalUpscaler] Unknown exception in on_first_frame");
         return false;
     }
-
-    m_initialized = true;
-
-    return true;
 }
 
 bool TemporalUpscaler::init_upscale_features() {
@@ -481,96 +511,168 @@ bool TemporalUpscaler::init_upscale_features() {
     uint32_t out_h = 0;
     uint32_t out_format = 0;
 
-    if (m_is_d3d12) {
-        auto& hook = g_framework->get_d3d12_hook();
+    try {
+        if (m_is_d3d12) {
+            auto& hook = g_framework->get_d3d12_hook();
 
-        auto swapchain = hook->get_swap_chain();
-        ComPtr<ID3D12Resource> backbuffer{};
+            auto swapchain = hook->get_swap_chain();
+            ComPtr<ID3D12Resource> backbuffer{};
 
-        if (FAILED(swapchain->GetBuffer(swapchain->GetCurrentBackBufferIndex(), IID_PPV_ARGS(&backbuffer)))) {
-            spdlog::error("[TemporalUpscaler] Failed to get backbuffer (D3D12)");
+            if (FAILED(swapchain->GetBuffer(swapchain->GetCurrentBackBufferIndex(), IID_PPV_ARGS(&backbuffer)))) {
+                spdlog::error("[TemporalUpscaler] Failed to get backbuffer (D3D12)");
+                return false;
+            }
+
+            // Get bb desc
+            const auto bb_desc = backbuffer->GetDesc();
+
+            m_backbuffer_size[0] = bb_desc.Width;
+            m_backbuffer_size[1] = bb_desc.Height;
+
+            out_w = bb_desc.Width;
+            out_h = bb_desc.Height;
+            out_format = bb_desc.Format;
+
+            try {
+                for (auto& copier : m_copiers) {
+                    copier.setup();
+                }
+            } catch (const std::exception& e) {
+                spdlog::error("[TemporalUpscaler] Exception during copier setup: {}", e.what());
+                return false;
+            } catch (...) {
+                spdlog::error("[TemporalUpscaler] Unknown exception during copier setup");
+                return false;
+            }
+        } else {
+            auto& hook = g_framework->get_d3d11_hook();
+
+            auto swapchain = hook->get_swap_chain();
+            auto device = hook->get_device();
+
+            // Get the context.
+            ComPtr<ID3D11DeviceContext> context{};
+            device->GetImmediateContext(&context);
+
+            // Get the back buffer.
+            ComPtr<ID3D11Texture2D> backbuffer{};
+            swapchain->GetBuffer(0, IID_PPV_ARGS(&backbuffer));
+
+            if (backbuffer == nullptr) {
+                spdlog::error("[TemporalUpscaler] Failed to get backbuffer (D3D11)");
+                return false;
+            }
+
+            // Get bb desc
+            D3D11_TEXTURE2D_DESC bb_desc{};
+            backbuffer->GetDesc(&bb_desc);
+
+            out_w = bb_desc.Width;
+            out_h = bb_desc.Height;
+            out_format = bb_desc.Format;
+        }
+
+        // Left eye.
+        InitParams params{};
+        params.id = get_evaluate_id(0);
+        params.upscaleMethod = m_upscale_type;
+        params.qualityLevel = m_upscale_quality->value();
+        params.displaySizeX = out_w;
+        params.displaySizeY = out_h;
+        params.format = out_format;
+        params.isContentHDR = false;
+        params.depthInverted = true;
+        params.YAxisInverted = false;
+        params.motionVetorsJittered = false;
+        params.enableSharpening = m_sharpness->value();
+        params.enableAutoExposure = false;
+        
+        spdlog::info("[TemporalUpscaler] Left eye params: id={}, method={}, quality={}, size={}x{}", 
+                     params.id, (int)params.upscaleMethod, params.qualityLevel, params.displaySizeX, params.displaySizeY);
+        
+        try {
+            spdlog::info("[TemporalUpscaler] Calling InitUpscaler for left eye...");
+            void* handle = InitUpscaler(&params);
+            spdlog::info("[TemporalUpscaler] InitUpscaler returned handle: {:x}", (uintptr_t)handle);
+            
+            // InitUpscaler returns an opaque handle/ID, not a texture resource
+            // We don't store it directly - it's just used internally by the upscaler backend
+            // The actual output texture will be passed via EvaluateUpscaler's destination parameter
+            
+            if (handle == nullptr) {
+                spdlog::error("[TemporalUpscaler] InitUpscaler returned nullptr for left eye");
+                return false;
+            }
+            
+            // Store the render width/height that the upscaler expects
+            auto render_w = GetRenderWidth(params.id);
+            auto render_h = GetRenderHeight(params.id);
+            spdlog::info("[TemporalUpscaler] Render resolution for left eye: {}x{}", render_w, render_h);
+            
+            if (render_w == 0 || render_h == 0) {
+                spdlog::error("[TemporalUpscaler] Invalid render resolution: {}x{}", render_w, render_h);
+                return false;
+            }
+        } catch (const std::exception& e) {
+            spdlog::error("[TemporalUpscaler] Exception during InitUpscaler for left eye: {}", e.what());
+            return false;
+        } catch (...) {
+            spdlog::error("[TemporalUpscaler] Exception during InitUpscaler for left eye");
             return false;
         }
 
-        // Get bb desc
-        const auto bb_desc = backbuffer->GetDesc();
-
-        m_backbuffer_size[0] = bb_desc.Width;
-        m_backbuffer_size[1] = bb_desc.Height;
-
-        out_w = bb_desc.Width;
-        out_h = bb_desc.Height;
-        out_format = bb_desc.Format;
-
-        for (auto& copier : m_copiers) {
-            copier.setup();
+        // Right eye.
+        if (VR::get()->is_hmd_active()) {
+            params.id = get_evaluate_id(1);
+            spdlog::info("[TemporalUpscaler] Right eye params: id={}", params.id);
+            
+            try {
+                spdlog::info("[TemporalUpscaler] Calling InitUpscaler for right eye...");
+                void* handle = InitUpscaler(&params);
+                spdlog::info("[TemporalUpscaler] InitUpscaler returned handle: {:x}", (uintptr_t)handle);
+                
+                if (handle == nullptr) {
+                    spdlog::error("[TemporalUpscaler] InitUpscaler returned nullptr for right eye");
+                    return false;
+                }
+                
+                auto render_w = GetRenderWidth(params.id);
+                auto render_h = GetRenderHeight(params.id);
+                spdlog::info("[TemporalUpscaler] Render resolution for right eye: {}x{}", render_w, render_h);
+                
+                if (render_w == 0 || render_h == 0) {
+                    spdlog::error("[TemporalUpscaler] Invalid render resolution: {}x{}", render_w, render_h);
+                    return false;
+                }
+            } catch (const std::exception& e) {
+                spdlog::error("[TemporalUpscaler] Exception during InitUpscaler for right eye: {}", e.what());
+                return false;
+            } catch (...) {
+                spdlog::error("[TemporalUpscaler] Exception during InitUpscaler for right eye");
+                return false;
+            }
         }
-    } else {
-        auto& hook = g_framework->get_d3d11_hook();
 
-        auto swapchain = hook->get_swap_chain();
-        auto device = hook->get_device();
-
-        // Get the context.
-        ComPtr<ID3D11DeviceContext> context{};
-        device->GetImmediateContext(&context);
-
-        // Get the back buffer.
-        ComPtr<ID3D11Texture2D> backbuffer{};
-        swapchain->GetBuffer(0, IID_PPV_ARGS(&backbuffer));
-
-        if (backbuffer == nullptr) {
-            spdlog::error("[TemporalUpscaler] Failed to get backbuffer (D3D11)");
+        spdlog::info("[TemporalUpscaler] Both upscalers initialized, calling update_motion_scale...");
+        try {
+            update_motion_scale();
+        } catch (const std::exception& e) {
+            spdlog::error("[TemporalUpscaler] Exception during update_motion_scale: {}", e.what());
+            return false;
+        } catch (...) {
+            spdlog::error("[TemporalUpscaler] Unknown exception during update_motion_scale");
             return false;
         }
 
-        // Get bb desc
-        D3D11_TEXTURE2D_DESC bb_desc{};
-        backbuffer->GetDesc(&bb_desc);
-
-        out_w = bb_desc.Width;
-        out_h = bb_desc.Height;
-        out_format = bb_desc.Format;
+        spdlog::info("[TemporalUpscaler] Initialization successful");
+        return true;
+    } catch (const std::exception& e) {
+        spdlog::error("[TemporalUpscaler] Exception in init_upscale_features: {}", e.what());
+        return false;
+    } catch (...) {
+        spdlog::error("[TemporalUpscaler] Unknown exception in init_upscale_features");
+        return false;
     }
-
-    // Left eye.
-    InitParams params{};
-    params.id = get_evaluate_id(0);
-    params.upscaleMethod = m_upscale_type;
-    params.qualityLevel = m_upscale_quality->value();
-    params.displaySizeX = out_w;
-    params.displaySizeY = out_h;
-    params.format = out_format;
-    params.isContentHDR = false;
-    params.depthInverted = true;
-    params.YAxisInverted = false;
-    params.motionVetorsJittered = false;
-    params.enableSharpening = m_sharpness->value();
-    params.enableAutoExposure = false;
-    m_upscaled_textures[0] = InitUpscaler(&params);
-
-    // Right eye.
-    if (VR::get()->is_hmd_active()) {
-        params.id = get_evaluate_id(1);
-        m_upscaled_textures[1] = InitUpscaler(&params);
-    }
-
-    update_motion_scale();
-
-    if (m_is_d3d12) {
-        const auto desc = ((ID3D12Resource*)m_upscaled_textures[0])->GetDesc();
-
-        spdlog::info("[TemporalUpscaler] Upscaled texture size: {}x{}", desc.Width, desc.Height);
-    } else {
-        ComPtr<ID3D11Texture2D> texture = (ID3D11Texture2D*)m_upscaled_textures[0];
-        D3D11_TEXTURE2D_DESC desc{};
-        texture->GetDesc(&desc);
-
-        spdlog::info("[TemporalUpscaler] Upscaled texture size: {}x{}", desc.Width, desc.Height);
-    }
-
-    spdlog::info("[TemporalUpscaler] Wanted render resolution: {}x{}", GetRenderWidth(get_evaluate_id(0)), GetRenderHeight(get_evaluate_id(0)));
-    spdlog::info("[TemporalUpscaler] Created upscaled texture(s)");
 
     return true;
 }
