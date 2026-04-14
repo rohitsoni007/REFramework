@@ -49,10 +49,9 @@ project(reframework
 	LANGUAGES
 		CXX
 		C
-		CSharp
 )
 
-include(CSharpUtilities)
+# include(CSharpUtilities)
 
 set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MP")
@@ -68,19 +67,19 @@ set(SAFETYHOOK_FETCH_ZYDIS ON)
 set(FT_DISABLE_HARFBUZZ ON CACHE BOOL "" FORCE) # Freetype
 
 if ("${CMAKE_BUILD_TYPE}" MATCHES "Release")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MT")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MT")
-
-    # Statically compile runtime
-    string(REGEX REPLACE "/MD" "/MT" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-    string(REGEX REPLACE "/MD" "/MT" CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
-    string(REGEX REPLACE "/MD" "/MT" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
-    string(REGEX REPLACE "/MD" "/MT" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
+#    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MT")
+#    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MT")
+#
+#    # Statically compile runtime
+#    string(REGEX REPLACE "/MD" "/MT" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+#    string(REGEX REPLACE "/MD" "/MT" CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+#    string(REGEX REPLACE "/MD" "/MT" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
+#    string(REGEX REPLACE "/MD" "/MT" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
     
     message(NOTICE "Building in Release mode")
 endif()
 
-set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
 
 set(NUGET_PACKAGES_DIR "$ENV{NUGET_PACKAGES}")
 
@@ -245,7 +244,7 @@ if(REF_BUILD_DEPENDENCIES AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework-dep
 	)
 
 endif()
-# Target: minhook
+# Target: ref_minhook
 if(REF_BUILD_DEPENDENCIES AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework-dependencies
 	set(minhook_SOURCES
 		cmake.toml
@@ -256,12 +255,12 @@ if(REF_BUILD_DEPENDENCIES AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework-dep
 		"dependencies/minhook/src/trampoline.c"
 	)
 
-	add_library(minhook STATIC)
+	add_library(ref_minhook STATIC)
 
-	target_sources(minhook PRIVATE ${minhook_SOURCES})
+	target_sources(ref_minhook PRIVATE ${minhook_SOURCES})
 	source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${minhook_SOURCES})
 
-	target_include_directories(minhook PUBLIC
+	target_include_directories(ref_minhook PUBLIC
 		"dependencies/minhook/include"
 		"dependencies/minhook/src/hde"
 	)
@@ -459,7 +458,7 @@ target_compile_options(utility PUBLIC
 
 target_link_libraries(utility PUBLIC
 	spdlog
-	minhook
+	ref_minhook
 	safetyhook
 	kananlib
 )
@@ -2602,7 +2601,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		imgui
 		imguizmo
 		imnodes
-		minhook
+		ref_minhook
 		d3d11
 		glm_static
 		shlwapi
@@ -2813,7 +2812,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		imgui
 		imguizmo
 		imnodes
-		minhook
+		ref_minhook
 		d3d11
 		glm_static
 		shlwapi
@@ -4989,7 +4988,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		imgui
 		imguizmo
 		imnodes
-		minhook
+		ref_minhook
 		d3d11
 		glm_static
 		shlwapi
@@ -5200,7 +5199,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		imgui
 		imguizmo
 		imnodes
-		minhook
+		ref_minhook
 		d3d11
 		glm_static
 		shlwapi
@@ -5411,7 +5410,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		imgui
 		imguizmo
 		imnodes
-		minhook
+		ref_minhook
 		d3d11
 		glm_static
 		shlwapi
@@ -8571,7 +8570,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		imgui
 		imguizmo
 		imnodes
-		minhook
+		ref_minhook
 		d3d11
 		glm_static
 		shlwapi
@@ -8782,7 +8781,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		imgui
 		imguizmo
 		imnodes
-		minhook
+		ref_minhook
 		d3d11
 		glm_static
 		shlwapi
@@ -9977,7 +9976,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		imgui
 		imguizmo
 		imnodes
-		minhook
+		ref_minhook
 		d3d11
 		glm_static
 		shlwapi
@@ -11170,7 +11169,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		imgui
 		imguizmo
 		imnodes
-		minhook
+		ref_minhook
 		d3d11
 		glm_static
 		shlwapi
@@ -12365,7 +12364,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		imgui
 		imguizmo
 		imnodes
-		minhook
+		ref_minhook
 		d3d11
 		glm_static
 		shlwapi
@@ -13560,7 +13559,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		imgui
 		imguizmo
 		imnodes
-		minhook
+		ref_minhook
 		d3d11
 		glm_static
 		shlwapi
@@ -14755,7 +14754,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		imgui
 		imguizmo
 		imnodes
-		minhook
+		ref_minhook
 		d3d11
 		glm_static
 		shlwapi
@@ -15950,7 +15949,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		imgui
 		imguizmo
 		imnodes
-		minhook
+		ref_minhook
 		d3d11
 		glm_static
 		shlwapi
@@ -17145,7 +17144,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		imgui
 		imguizmo
 		imnodes
-		minhook
+		ref_minhook
 		d3d11
 		glm_static
 		shlwapi
@@ -18340,7 +18339,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		imgui
 		imguizmo
 		imnodes
-		minhook
+		ref_minhook
 		d3d11
 		glm_static
 		shlwapi
@@ -19535,7 +19534,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		imgui
 		imguizmo
 		imnodes
-		minhook
+		ref_minhook
 		d3d11
 		glm_static
 		shlwapi
